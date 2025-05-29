@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบประเมินคลิป TikTok</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            min-height: 80vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .content {
+            padding: 40px;
+            min-height: 500px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        .btn-disabled {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: not-allowed;
+            font-size: 16px;
+            font-weight: bold;
+            opacity: 0.6;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+        }
+
+        .btn-disabled:hover {
+            transform: none;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        .clip-progress {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .clip-progress-bar {
+            background: #e1e5e9;
+            border-radius: 25px;
+            height: 12px;
+            margin: 10px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .clip-progress-fill {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            height: 100%;
+            border-radius: 25px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .clip-progress-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .criterion.completed {
+            border-left-color: #2ecc71;
+            background: #f8fff8;
+        }
+
+        .criterion.incomplete {
+            border-left-color: #ffc107;
+            background: #fffdf7;
+        }
+
+        .tiktok-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            text-align: center;
+            min-height: 700px;
+        }
+
+        .tiktok-embed-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 600px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .tiktok-fallback {
+            text-align: center;
+            padding: 40px;
+            background: #fff;
+            border-radius: 15px;
+            border: 2px dashed #ddd;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .tiktok-fallback h3 {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .tiktok-fallback p {
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .scoring-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+
+        .criterion {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .criterion h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .score-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .score-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #e1e5e9;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-btn:hover {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .score-btn.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .clip-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .progress-container {
+            background: #e1e5e9;
+            border-radius: 25px;
+            height: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            height: 100%;
+            border-radius: 25px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .admin-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .tiktok-embed {
+                height: 500px;
+            }
+
+            .score-buttons {
+                justify-content: center;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .closed-message {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .closed-message h2 {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="headerTitle">🎬 ระบบประเมินคลิป TikTok</h1>
+            <p id="headerSubtitle">ยินดีต้อนรับสู่การประเมินคลิป TikTok</p>
+        </div>
+
+        <div class="content">
+            <!-- Loading Page -->
+            <div id="page-loading" class="page">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>กำลังโหลดระบบ...</p>
+                    <p style="font-size: 14px; color: #666; margin-top: 10px;">
+                        <span id="loadingStatus">กำลังเชื่อมต่อฐานข้อมูล</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- System Closed Page -->
+            <div id="page-closed" class="page">
+                <div class="closed-message">
+                    <h2>🔒 ระบบปิดรับลงคะแนนแล้ว</h2>
+                    <p>ขณะนี้ระบบได้ปิดรับการลงคะแนนแล้ว</p>
+                    <p>ขอบคุณสำหรับความสนใจ</p>
+                </div>
+            </div>
+
+            <!-- Welcome Page -->
+            <div id="page-welcome" class="page active">
+                <div class="text-center">
+                    <h2>🎉 ยินดีต้อนรับสู่การลงคะแนน</h2>
+                    <p style="margin: 20px 0;">คุณจะได้ประเมิน 4 คลิป TikTok ด้วยเกณฑ์ 10 ข้อ</p>
+                    <p><strong>กรรมการ:</strong> <span id="judgeName">กำลังโหลด...</span></p>
+                    
+                    <div class="alert alert-success">
+                        <strong>คำแนะนำ:</strong><br>
+                        • ดูคลิปให้จบก่อนประเมิน<br>
+                        • ให้คะแนนแต่ละข้อ 1-5 คะแนน<br>
+                        • คุณสามารถแก้ไขคะแนนได้ก่อนส่งขั้นสุดท้าย
+                    </div>
+
+                    <div id="welcomeActions">
+                        <button class="btn btn-success" onclick="startEvaluation()">🚀 เริ่มการประเมิน</button>
+                    </div>
+                    
+                    <!-- สำหรับผู้ที่ไม่มี token -->
+                    <div id="noTokenMessage" class="hidden">
+                        <div class="alert alert-warning">
+                            <strong>⚠️ ไม่พบลิงก์ประเมิน</strong><br>
+                            กรุณาใช้ลิงก์ที่ได้รับจากผู้ดูแลระบบ
+                        </div>
+                        
+                        <!-- Admin Login Form -->
+                        <div class="admin-panel" style="margin-top: 20px;">
+                            <h3 style="margin-bottom: 15px;">🔐 เข้าสู่ระบบแอดมิน</h3>
+                            
+                            <div class="form-group">
+                                <label>ชื่อผู้ใช้:</label>
+                                <input type="text" id="quickAdminUsername" placeholder="ชื่อผู้ใช้" value="scores1" style="max-width: 300px; margin: 0 auto;">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>รหัสผ่าน:</label>
+                                <input type="password" id="quickAdminPassword" placeholder="รหัสผ่าน" onkeypress="if(event.key==='Enter') quickAdminLogin()" style="max-width: 300px; margin: 0 auto;">
+                            </div>
+                            
+                            <div style="text-align: center; margin-top: 15px;">
+                                <button class="btn btn-success" onclick="quickAdminLogin()">🔑 เข้าสู่ระบบแอดมิน</button>
+                            </div>
+                            
+                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                                <strong>ข้อมูลเข้าสู่ระบบ:</strong> scores1 / Admin-01
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clip Evaluation Pages -->
+            <div id="page-clip-1" class="page">
+                <div class="text-center">
+                    <h2>📱 คลิปที่ 1</h2>
+                    
+                    <!-- Progress Bar -->
+                    <div class="clip-progress">
+                        <div class="clip-progress-bar">
+                            <div id="clip-progress-1" class="clip-progress-fill"></div>
+                        </div>
+                        <div id="clip-progress-text-1" class="clip-progress-text">0/10 ข้อ (0%)</div>
+                    </div>
+                    
+                    <div class="tiktok-container">
+                        <div id="tiktok-1" class="tiktok-embed-container">
+                            <!-- TikTok embed จะโหลดที่นี่ -->
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-section">
+                        <h3>🎯 ประเมินคะแนน</h3>
+                        <div id="scoring-1"></div>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div id="warning-1" style="display: none;"></div>
+
+                    <div class="text-center">
+                        <button class="btn btn-secondary" onclick="goToPage('welcome')">← ย้อนกลับ</button>
+                        <button id="next-btn-1" class="btn-disabled" disabled onclick="nextClip(1)">❌ ประเมินไม่ครบ (0/10)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-clip-2" class="page">
+                <div class="text-center">
+                    <h2>📱 คลิปที่ 2</h2>
+                    
+                    <!-- Progress Bar -->
+                    <div class="clip-progress">
+                        <div class="clip-progress-bar">
+                            <div id="clip-progress-2" class="clip-progress-fill"></div>
+                        </div>
+                        <div id="clip-progress-text-2" class="clip-progress-text">0/10 ข้อ (0%)</div>
+                    </div>
+                    
+                    <div class="tiktok-container">
+                        <div id="tiktok-2" class="tiktok-embed-container">
+                            <!-- TikTok embed จะโหลดที่นี่ -->
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-section">
+                        <h3>🎯 ประเมินคะแนน</h3>
+                        <div id="scoring-2"></div>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div id="warning-2" style="display: none;"></div>
+
+                    <div class="text-center">
+                        <button class="btn btn-secondary" onclick="goToPage('clip-1')">← คลิปที่ 1</button>
+                        <button id="next-btn-2" class="btn-disabled" disabled onclick="nextClip(2)">❌ ประเมินไม่ครบ (0/10)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-clip-3" class="page">
+                <div class="text-center">
+                    <h2>📱 คลิปที่ 3</h2>
+                    
+                    <!-- Progress Bar -->
+                    <div class="clip-progress">
+                        <div class="clip-progress-bar">
+                            <div id="clip-progress-3" class="clip-progress-fill"></div>
+                        </div>
+                        <div id="clip-progress-text-3" class="clip-progress-text">0/10 ข้อ (0%)</div>
+                    </div>
+                    
+                    <div class="tiktok-container">
+                        <div id="tiktok-3" class="tiktok-embed-container">
+                            <!-- TikTok embed จะโหลดที่นี่ -->
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-section">
+                        <h3>🎯 ประเมินคะแนน</h3>
+                        <div id="scoring-3"></div>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div id="warning-3" style="display: none;"></div>
+
+                    <div class="text-center">
+                        <button class="btn btn-secondary" onclick="goToPage('clip-2')">← คลิปที่ 2</button>
+                        <button id="next-btn-3" class="btn-disabled" disabled onclick="nextClip(3)">❌ ประเมินไม่ครบ (0/10)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-clip-4" class="page">
+                <div class="text-center">
+                    <h2>📱 คลิปที่ 4</h2>
+                    
+                    <!-- Progress Bar -->
+                    <div class="clip-progress">
+                        <div class="clip-progress-bar">
+                            <div id="clip-progress-4" class="clip-progress-fill"></div>
+                        </div>
+                        <div id="clip-progress-text-4" class="clip-progress-text">0/10 ข้อ (0%)</div>
+                    </div>
+                    
+                    <div class="tiktok-container">
+                        <div id="tiktok-4" class="tiktok-embed-container">
+                            <!-- TikTok embed จะโหลดที่นี่ -->
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-section">
+                        <h3>🎯 ประเมินคะแนน</h3>
+                        <div id="scoring-4"></div>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div id="warning-4" style="display: none;"></div>
+
+                    <div class="text-center">
+                        <button class="btn btn-secondary" onclick="goToPage('clip-3')">← คลิปที่ 3</button>
+                        <button id="next-btn-4" class="btn-disabled" disabled onclick="goToSummary()">❌ ประเมินไม่ครบ (0/10)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Page -->
+            <div id="page-summary" class="page">
+                <div class="text-center">
+                    <h2>📊 สรุปคะแนนการประเมิน</h2>
+                    
+                    <div class="alert alert-warning">
+                        <strong>⚠️ ตรวจสอบคะแนนอีกครั้ง:</strong><br>
+                        หลังจากส่งคะแนนแล้ว จะไม่สามารถแก้ไขได้อีก
+                    </div>
+                    
+                    <div id="summaryContent"></div>
+
+                    <div class="text-center" style="margin-top: 30px;">
+                        <button class="btn btn-secondary" onclick="goToPage('clip-4')">← แก้ไขคะแนน</button>
+                        <button id="submit-btn" class="btn btn-success" onclick="submitAllScores()">✅ ยืนยันส่งคะแนน</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thank You Page -->
+            <div id="page-thanks" class="page">
+                <div class="text-center">
+                    <h2>🙏 ขอบคุณที่ร่วมลงคะแนน</h2>
+                    
+                    <div class="alert alert-success">
+                        <h3>✅ การลงคะแนนเสร็จสมบูรณ์</h3>
+                        <p>ขอบคุณสำหรับการประเมินอย่างรอบคอบ</p>
+                        <p>คะแนนของคุณได้ถูกบันทึกเรียบร้อยแล้ว</p>
+                    </div>
+
+                    <p>📈 ผลการประกวดจะประกาศในภายหลัง</p>
+                </div>
+            </div>
+
+            <!-- Admin Panel (Hidden by default) -->
+            <div id="page-admin" class="page">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>🔧 แผงควบคุมแอดมิน</h2>
+                    <button class="btn btn-secondary" onclick="adminLogout()">🚪 ออกจากระบบ</button>
+                </div>
+                
+                <div class="admin-panel">
+                    <h3>📊 สถิติระบบ</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalJudges">0</div>
+                            <div>กรรมการทั้งหมด</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="completedJudges">0</div>
+                            <div>ประเมินแล้ว</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="averageWinner">0</div>
+                            <div>คะแนนเฉลี่ยรางวัลที่ 1</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-panel">
+                    <h3>🎛️ การตั้งค่าระบบ</h3>
+                    <div class="form-group">
+                        <label>สถานะระบบ:</label>
+                        <select id="systemStatus">
+                            <option value="open">🟢 เปิดรับลงคะแนน</option>
+                            <option value="closed">🔴 ปิดรับลงคะแนน</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="updateSystemStatus()">💾 อัปเดตสถานะ</button>
+                </div>
+
+                <div class="admin-panel">
+                    <h3>👨‍⚖️ จัดการกรรมการ</h3>
+                    <button class="btn btn-success" onclick="createAllJudges()">🚀 สร้างกรรมการ 10 คน</button>
+                    <button class="btn" onclick="showJudgeLinks()">🔗 แสดงลิงก์ทั้งหมด</button>
+                    
+                    <div id="judgeLinksDisplay" class="hidden" style="margin-top: 20px; max-height: 400px; overflow-y: auto;"></div>
+                </div>
+
+                <div class="admin-panel">
+                    <h3>📈 ผลคะแนน</h3>
+                    <button class="btn" onclick="showResults()">📊 แสดงผลคะแนน</button>
+                    <button class="btn btn-danger" onclick="exportResults()">📋 ส่งออกผลคะแนน</button>
+                    
+                    <div id="resultsDisplay" class="hidden" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>กำลังโหลด...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ ต้องแก้ไขค่าเหล่านี้ตามโปรเจกต์ Supabase ของคุณ
+        const SUPABASE_CONFIG = {
+            url: 'https://qrlphourtlxfoqyptxpb.supabase.co',
+            key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFybHBob3VydGx4Zm9xeXB0eHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1MjAwMzgsImV4cCI6MjA2NDA5NjAzOH0.DIjGkjuvLGzHcu8SzZwOwM_n9-ZXDJMvVVBK_UAww2g'
+        };
+
+        // คลิป TikTok ทั้ง 4 คลิป (ใช้ Embed Code แทน URL)
+        // วิธีเพิ่มคลิปใหม่:
+        // 1. ไปที่ TikTok → คลิกปุ่ม Share → คลิก Embed
+        // 2. คัดลอก video ID จาก URL หรือ embed code
+        // 3. แก้ไขข้อมูลด้านล่างนี้
+        const CLIPS = {
+            1: {
+                url: 'https://www.tiktok.com/@3abygiirl1/video/7501351084003298581',
+                videoId: '7501351084003298581',
+                username: '3abygiirl1',
+                title: 'เบ้บ'
+            },
+            2: {
+                url: 'https://www.tiktok.com/@joojoob00/video/7500959013140565266',
+                videoId: '7500959013140565266',
+                username: 'joojoob00',
+                title: 'เจลิ - ลงอีกรอบนึง ลืมใส่ตัวอย่างแชทให้ดู😭 #fyp #chatbot #ai #sillytavern #sillytavernth2025'
+            },
+            3: {
+                url: 'https://www.tiktok.com/@nahamary.4165/video/7507332065063341319',
+                videoId: '7507332065063341319', 
+                username: 'nahamary.4165',
+                title: 'nahamary - รามมี่'
+            },
+            4: {
+                url: 'https://www.tiktok.com/@hellohihieieie/video/7507331530637823240',
+                videoId: '7507331530637823240',
+                username: 'hellohihieieie',
+                title: 'hellohihieieie - Sm'
+            }
+        };
+
+        // Global Variables
+        let supabase = null;
+        let currentJudge = null;
+        let scores = {1: {}, 2: {}, 3: {}, 4: {}};
+        let systemSettings = { status: 'open' };
+        let isAdminLoggedIn = false; // เพิ่มตัวแปรเช็ค login
+        
+        const criteria = [
+            'ความคิดสร้างสรรค์และต้นฉบับ',
+            'คุณภาพของเนื้อหา', 
+            'ความน่าสนใจและความบันเทิง',
+            'ทักษะการถ่ายทำและการตัดต่อ',
+            'การใช้เสียง/ดนตรี',
+            'การออกแบบและองค์ประกอบภาพ',
+            'ความเหมาะสมกับเทรนด์',
+            'ความชัดเจนของข้อความ/ความหมาย',
+            'การมีส่วนร่วมของผู้ชม',
+            'ความประทับใจโดยรวม'
+        ];
+
+        // Initialize System
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                console.log('🚀 Starting system initialization...');
+                console.log('📍 Current URL:', window.location.href);
+                console.log('🔐 Admin login status:', localStorage.getItem('adminLoggedIn'));
+                
+                // แสดงหน้าโหลดก่อน
+                goToPage('loading');
+                
+                // อัปเดตสถานะโหลด
+                updateLoadingStatus('เริ่มต้นระบบ...');
+                
+                await initializeSystem();
+                updateLoadingStatus('ตรวจสอบสิทธิ์การเข้าถึง...');
+                
+                checkUrlParams();
+                updateLoadingStatus('โหลดคลิป TikTok...');
+                
+                loadTikTokScript();
+                updateLoadingStatus('เตรียมแบบฟอร์มประเมิน...');
+                
+                generateScoringForms();
+                updateLoadingStatus('เสร็จสิ้น');
+                
+                console.log('✅ System initialized successfully');
+                
+                // รอสักครู่แล้วซ่อนหน้าโหลด (ให้ user เห็นว่าระบบพร้อม)
+                setTimeout(() => {
+                    const loadingPage = document.getElementById('page-loading');
+                    if (loadingPage && loadingPage.classList.contains('active')) {
+                        loadingPage.classList.remove('active');
+                        console.log('✅ Loading page hidden');
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ System initialization failed:', error);
+                
+                updateLoadingStatus('เกิดข้อผิดพลาด');
+                
+                // แสดงข้อความแจ้งเตือนหากมีปัญหา
+                setTimeout(() => {
+                    document.getElementById('page-loading').innerHTML = `
+                        <div class="text-center">
+                            <h2>⚠️ เกิดข้อผิดพลาดในระบบ</h2>
+                            <div class="alert alert-error">
+                                <strong>ข้อผิดพลาด:</strong> ${error.message}<br><br>
+                                <strong>วิธีแก้ไข:</strong><br>
+                                1. ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต<br>
+                                2. รีเฟรชหน้าเว็บ<br>
+                                3. ติดต่อผู้ดูแลระบบ
+                            </div>
+                            <button class="btn" onclick="location.reload()">🔄 รีเฟรชหน้าเว็บ</button>
+                            <button class="btn btn-secondary" onclick="clearAdminCache()">🗑️ ล้างข้อมูล Cache</button>
+                        </div>
+                    `;
+                }, 1000);
+            }
+        });
+
+        // ล้าง admin cache
+        function clearAdminCache() {
+            localStorage.removeItem('adminLoggedIn');
+            alert('ล้างข้อมูล Cache แล้ว กำลังรีเฟรช...');
+            location.reload();
+        }
+
+        // อัปเดตข้อความสถานะโหลด
+        function updateLoadingStatus(message) {
+            const statusElement = document.getElementById('loadingStatus');
+            if (statusElement) {
+                statusElement.textContent = message;
+            }
+        }
+
+        // Initialize Supabase and System
+        async function initializeSystem() {
+            try {
+                console.log('🔧 Initializing Supabase...');
+                
+                // ตรวจสอบว่า Supabase library โหลดแล้วหรือยัง
+                if (typeof window.supabase === 'undefined') {
+                    throw new Error('Supabase library ไม่โหลด กรุณารีเฟรชหน้าเว็บ');
+                }
+
+                // ตรวจสอบ Config
+                if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key) {
+                    throw new Error('การตั้งค่า Supabase ไม่ถูกต้อง');
+                }
+
+                supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+                console.log('✅ Supabase connected');
+                
+                // Test connection และสร้างตารางหากจำเป็น
+                await setupDatabase();
+                await checkSystemStatus();
+                
+                console.log('✅ Database ready');
+                
+            } catch (error) {
+                console.error('❌ System initialization error:', error);
+                throw error; // ส่งต่อ error ให้ caller จัดการ
+            }
+        }
+
+        // Setup Database
+        async function setupDatabase() {
+            try {
+                // Try to query judges table
+                const { data, error } = await supabase.from('judges').select('count').limit(1);
+                
+                if (error && error.code === 'PGRST116') {
+                    // Tables don't exist, need to create them
+                    console.log('Database tables need to be created');
+                    showSetupInstructions();
+                }
+            } catch (error) {
+                console.error('Database setup error:', error);
+            }
+        }
+
+        // Show setup instructions
+        function showSetupInstructions() {
+            if (window.location.search.includes('admin=true')) {
+                alert(`ต้องสร้างตารางฐานข้อมูลก่อน
+
+ไปที่ Supabase Dashboard → SQL Editor และรันคำสั่งนี้:
+
+-- สร้างตาราง judges
+CREATE TABLE IF NOT EXISTS judges (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  access_token TEXT UNIQUE NOT NULL,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- สร้างตาราง scores  
+CREATE TABLE IF NOT EXISTS scores (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  judge_id UUID REFERENCES judges(id),
+  clip_id INTEGER NOT NULL,
+  q1 INTEGER, q2 INTEGER, q3 INTEGER, q4 INTEGER, q5 INTEGER,
+  q6 INTEGER, q7 INTEGER, q8 INTEGER, q9 INTEGER, q10 INTEGER,
+  total_score INTEGER,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- สร้างตาราง settings
+CREATE TABLE IF NOT EXISTS settings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  key TEXT UNIQUE NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ลบข้อมูลเก่าใน settings ก่อน (ถ้ามี)
+DELETE FROM settings WHERE key = 'system_status';
+
+-- เพิ่มการตั้งค่าเริ่มต้น
+INSERT INTO settings (key, value) VALUES ('system_status', 'open');
+
+-- ปิด RLS เพื่อให้ใช้งานได้
+ALTER TABLE judges DISABLE ROW LEVEL SECURITY;
+ALTER TABLE scores DISABLE ROW LEVEL SECURITY;
+ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
+
+รีเฟรชหน้าเว็บหลังจากรัน SQL เสร็จ`);
+            }
+        }
+
+        // Check system status
+        async function checkSystemStatus() {
+            try {
+                const { data } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'system_status')
+                    .single();
+                    
+                systemSettings.status = data?.value || 'open';
+                
+                if (systemSettings.status === 'closed' && !window.location.search.includes('admin=true')) {
+                    goToPage('closed');
+                }
+                
+            } catch (error) {
+                console.log('Settings not found, using default');
+            }
+        }
+
+        // Check URL parameters
+        function checkUrlParams() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const isAdmin = urlParams.get('admin');
+                
+                console.log('🔍 Checking URL params...', { token: !!token, isAdmin });
+                
+                if (isAdmin === 'true') {
+                    console.log('🔧 Admin access requested');
+                    // เช็คว่าล็อกอินแอดมินแล้วหรือยัง
+                    const adminLoggedIn = localStorage.getItem('adminLoggedIn');
+                    console.log('🔑 Admin login status:', adminLoggedIn);
+                    
+                    if (adminLoggedIn === 'true') {
+                        console.log('✅ Admin already logged in, going to admin panel');
+                        isAdminLoggedIn = true;
+                        goToPage('admin');
+                        loadAdminStats();
+                    } else {
+                        console.log('🔒 Admin not logged in, showing login page');
+                        isAdminLoggedIn = false;
+                        goToPage('admin-login');
+                    }
+                    return;
+                }
+                
+                if (token) {
+                    console.log('🎫 Token found, loading judge...');
+                    loadJudgeByToken(token);
+                } else {
+                    // No token, show appropriate page based on system status
+                    console.log('🏠 No token, showing default page...');
+                    
+                    // แสดงหน้า welcome แต่ซ่อนปุ่มเริ่มประเมิน
+                    goToPage('welcome');
+                    document.getElementById('judgeName').textContent = 'กรุณาใช้ลิงก์จากแอดมิน';
+                    document.getElementById('noTokenMessage').classList.remove('hidden');
+                    document.getElementById('welcomeActions').classList.add('hidden');
+                    
+                    if (systemSettings.status === 'closed') {
+                        // หากระบบปิด ให้ไปหน้าปิด
+                        setTimeout(() => goToPage('closed'), 500);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error checking URL params:', error);
+                // fallback ไปหน้าต้อนรับ
+                goToPage('welcome');
+                document.getElementById('judgeName').textContent = 'เกิดข้อผิดพลาด';
+                document.getElementById('noTokenMessage').classList.remove('hidden');
+                document.getElementById('welcomeActions').classList.add('hidden');
+            }
+        }
+
+        // Quick admin login from welcome page
+        function quickAdminLogin() {
+            console.log('🔑 Quick admin login attempt...');
+            
+            const username = document.getElementById('quickAdminUsername').value;
+            const password = document.getElementById('quickAdminPassword').value;
+            
+            if (username === 'scores1' && password === 'Admin-01') {
+                console.log('✅ Quick admin credentials correct');
+                localStorage.setItem('adminLoggedIn', 'true');
+                isAdminLoggedIn = true;
+                
+                console.log('🚀 Redirecting to admin panel');
+                goToPage('admin');
+                loadAdminStats();
+                
+                alert('เข้าสู่ระบบแอดมินสำเร็จ!');
+            } else {
+                console.log('❌ Invalid quick admin credentials');
+                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง\n\nชื่อผู้ใช้: scores1\nรหัสผ่าน: Admin-01');
+                document.getElementById('quickAdminPassword').value = '';
+                document.getElementById('quickAdminUsername').focus();
+            }
+        }
+
+        // Admin login
+        function adminLogin() {
+            console.log('🔑 Attempting admin login...');
+            
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            console.log('Username:', username);
+            
+            if (username === 'scores1' && password === 'Admin-01') {
+                console.log('✅ Admin credentials correct');
+                localStorage.setItem('adminLoggedIn', 'true');
+                isAdminLoggedIn = true;
+                
+                console.log('🚀 Redirecting to admin panel');
+                goToPage('admin');
+                loadAdminStats();
+                
+                alert('เข้าสู่ระบบแอดมินสำเร็จ!');
+            } else {
+                console.log('❌ Invalid admin credentials');
+                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง\n\nชื่อผู้ใช้: scores1\nรหัสผ่าน: Admin-01');
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminUsername').focus();
+            }
+        }
+
+        // Admin logout
+        function adminLogout() {
+            if (confirm('ต้องการออกจากระบบแอดมินหรือไม่?')) {
+                console.log('🚪 Admin logout');
+                localStorage.removeItem('adminLoggedIn');
+                isAdminLoggedIn = false;
+                goToPage('admin-login');
+            }
+        }
+
+        // Load TikTok embed script
+        function loadTikTokScript() {
+            // ตรวจสอบว่า TikTok script โหลดแล้วหรือยัง
+            if (!document.querySelector('script[src*="tiktok.com/embed.js"]')) {
+                const script = document.createElement('script');
+                script.src = 'https://www.tiktok.com/embed.js';
+                script.async = true;
+                document.head.appendChild(script);
+                
+                script.onload = function() {
+                    console.log('TikTok embed script loaded');
+                    loadClips();
+                };
+                
+                script.onerror = function() {
+                    console.error('Failed to load TikTok embed script');
+                    loadClipsWithFallback();
+                };
+            } else {
+                loadClips();
+            }
+        }
+
+        // Load clips with TikTok embeds
+        function loadClips() {
+            Object.keys(CLIPS).forEach(clipNum => {
+                const clipData = CLIPS[clipNum];
+                const container = document.getElementById(`tiktok-${clipNum}`);
+                
+                if (!clipData.videoId) {
+                    showClipFallback(clipNum, clipData.url || `คลิปที่ ${clipNum}`);
+                    return;
+                }
+                
+                // สร้าง TikTok embed blockquote
+                const embedHTML = `
+                    <blockquote class="tiktok-embed" 
+                        cite="${clipData.url}" 
+                        data-video-id="${clipData.videoId}" 
+                        style="max-width: 605px; min-width: 325px; margin: 0 auto;">
+                        <section>
+                            <a target="_blank" title="@${clipData.username}" href="https://www.tiktok.com/@${clipData.username}?refer=embed">
+                                @${clipData.username}
+                            </a>
+                            <p>${clipData.title}</p>
+                            <a target="_blank" href="${clipData.url}?refer=embed">ดูใน TikTok</a>
+                        </section>
+                    </blockquote>
+                `;
+                
+                container.innerHTML = embedHTML;
+                
+                // รอสักครู่แล้วเรียก TikTok embed function ถ้ามี
+                setTimeout(() => {
+                    if (window.tiktokEmbed) {
+                        window.tiktokEmbed.lib.render();
+                    }
+                }, 1000);
+            });
+        }
+
+        // Load clips with fallback when embed fails
+        function loadClipsWithFallback() {
+            Object.keys(CLIPS).forEach(clipNum => {
+                const clipData = CLIPS[clipNum];
+                showClipFallback(clipNum, clipData.url || `คลิปที่ ${clipNum}`);
+            });
+        }
+
+        // Show fallback for clips that can't load
+        function showClipFallback(clipNum, clipUrl) {
+            const container = document.getElementById(`tiktok-${clipNum}`);
+            container.innerHTML = `
+                <div class="tiktok-fallback">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📱</div>
+                    <h3>คลิปที่ ${clipNum}</h3>
+                    <p>กรุณาคลิกเพื่อดูคลิปใน TikTok</p>
+                    <a href="${clipUrl}" target="_blank" class="btn" style="text-decoration: none;">
+                        🔗 ดูคลิปใน TikTok
+                    </a>
+                    <p style="font-size: 12px; color: #aaa; margin-top: 15px;">
+                        ดูคลิปแล้วกลับมาประเมินคะแนน
+                    </p>
+                </div>
+            `;
+        }
+
+        // Convert TikTok URL to embed format
+        function convertTikTokUrl(url) {
+            if (url.includes('tiktok.com') && !url.includes('/embed')) {
+                return url.replace('www.tiktok.com', 'www.tiktok.com/embed');
+            }
+            return url;
+        }
+
+        // Load judge by token
+        async function loadJudgeByToken(token) {
+            try {
+                console.log('🎫 Loading judge by token...');
+                
+                if (!supabase) {
+                    throw new Error('ระบบยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ');
+                }
+                
+                const { data, error } = await supabase
+                    .from('judges')
+                    .select('*')
+                    .eq('access_token', token)
+                    .single();
+                    
+                if (error || !data) {
+                    throw new Error('ลิงก์ไม่ถูกต้องหรือหมดอายุ');
+                }
+                
+                if (data.used) {
+                    console.log('✅ Judge already completed evaluation');
+                    document.getElementById('judgeName').textContent = data.name;
+                    goToPage('thanks');
+                    return;
+                }
+                
+                currentJudge = data;
+                document.getElementById('judgeName').textContent = data.name;
+                
+                console.log(`✅ Judge loaded: ${data.name}`);
+                
+                // ตรวจสอบสถานะระบบอีกครั้ง
+                if (systemSettings.status === 'closed') {
+                    goToPage('closed');
+                } else {
+                    goToPage('welcome');
+                    // ซ่อนข้อความ no token
+                    document.getElementById('noTokenMessage').classList.add('hidden');
+                    document.getElementById('welcomeActions').classList.remove('hidden');
+                }
+                
+            } catch (error) {
+                console.error('Error loading judge:', error);
+                
+                // แสดงข้อความเตือนแต่ไม่ redirect ไปหน้าปิด
+                document.getElementById('judgeName').textContent = 'ไม่พบข้อมูล';
+                document.getElementById('noTokenMessage').classList.remove('hidden');
+                document.getElementById('welcomeActions').classList.add('hidden');
+                
+                // แสดง alert ให้ผู้ใช้ทราบ
+                setTimeout(() => {
+                    alert(error.message);
+                }, 500);
+            }
+        }
+
+        // Page navigation
+        function goToPage(pageName) {
+            try {
+                console.log(`📄 Navigating to page: ${pageName}`);
+                
+                // ซ่อนหน้าทั้งหมดก่อน
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.remove('active');
+                });
+                
+                // แสดงหน้าที่ต้องการ
+                const targetPage = document.getElementById(`page-${pageName}`);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                    console.log(`✅ Page ${pageName} displayed successfully`);
+                    
+                    // อัปเดต header subtitle
+                    const titles = {
+                        'welcome': 'ยินดีต้อนรับสู่การประเมินคลิป TikTok',
+                        'clip-1': 'คลิปที่ 1',
+                        'clip-2': 'คลิปที่ 2', 
+                        'clip-3': 'คลิปที่ 3',
+                        'clip-4': 'คลิปที่ 4',
+                        'summary': 'สรุปคะแนนการประเมิน',
+                        'thanks': 'ขอบคุณที่ร่วมลงคะแนน',
+                        'admin': 'แผงควบคุมแอดมิน',
+                        'admin-login': 'เข้าสู่ระบบแอดมิน',
+                        'closed': 'ระบบปิดรับลงคะแนนแล้ว'
+                    };
+                    
+                    const subtitle = document.getElementById('headerSubtitle');
+                    if (subtitle) {
+                        subtitle.textContent = titles[pageName] || 'ระบบประเมินคลิป TikTok';
+                    }
+                    
+                    // ทำงานเพิ่มเติมสำหรับหน้าต่าง ๆ
+                    if (pageName === 'summary') {
+                        generateSummary();
+                    }
+                    
+                } else {
+                    console.error(`❌ Page not found: page-${pageName}`);
+                    // fallback ไปหน้าต้อนรับ
+                    const welcomePage = document.getElementById('page-welcome');
+                    if (welcomePage) {
+                        welcomePage.classList.add('active');
+                        console.log('📄 Fallback to welcome page');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error navigating to page:', error);
+                // emergency fallback
+                try {
+                    document.getElementById('page-welcome').classList.add('active');
+                } catch (e) {
+                    console.error('Critical error: Cannot show any page');
+                }
+            }
+        }
+
+        // Generate scoring forms
+        function generateScoringForms() {
+            for (let clipNum = 1; clipNum <= 4; clipNum++) {
+                const container = document.getElementById(`scoring-${clipNum}`);
+                let html = '';
+                
+                criteria.forEach((criterion, index) => {
+                    html += `
+                        <div class="criterion incomplete" id="criterion-${clipNum}-${index}">
+                            <h4>${index + 1}. ${criterion}</h4>
+                            <div class="score-buttons">
+                                ${[1,2,3,4,5].map(score => `
+                                    <button type="button" class="score-btn" 
+                                            onclick="setScore(${clipNum}, ${index}, ${score})"
+                                            data-clip="${clipNum}" data-criterion="${index}" data-score="${score}">
+                                        ${score}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                
+                // อัปเดตสถานะเริ่มต้น
+                updateClipProgress(clipNum);
+            }
+        }
+
+        // Set score
+        function setScore(clipNum, criterionIndex, score) {
+            const buttons = document.querySelectorAll(`[data-clip="${clipNum}"][data-criterion="${criterionIndex}"]`);
+            buttons.forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+            
+            scores[clipNum][criterionIndex] = score;
+            
+            // อัปเดต CSS class ของเกณฑ์
+            const criterion = document.getElementById(`criterion-${clipNum}-${criterionIndex}`);
+            if (criterion) {
+                criterion.classList.remove('incomplete');
+                criterion.classList.add('completed');
+            }
+            
+            // อัปเดตสถานะของคลิปนี้
+            updateClipProgress(clipNum);
+        }
+
+        // อัปเดตความคืบหน้าของคลิป
+        function updateClipProgress(clipNum) {
+            const clipScores = scores[clipNum];
+            const completedCount = Object.keys(clipScores).length;
+            const totalCriteria = criteria.length; // 10 ข้อ
+            const isComplete = completedCount === totalCriteria;
+            
+            // อัปเดต progress bar
+            const progressBar = document.querySelector(`#clip-progress-${clipNum}`);
+            if (progressBar) {
+                const percentage = Math.round((completedCount / totalCriteria) * 100);
+                progressBar.style.width = percentage + '%';
+                
+                const progressText = document.querySelector(`#clip-progress-text-${clipNum}`);
+                if (progressText) {
+                    progressText.textContent = `${completedCount}/${totalCriteria} ข้อ (${percentage}%)`;
+                }
+            }
+            
+            // อัปเดตสถานะปุ่มถัดไป
+            const nextButton = document.querySelector(`#next-btn-${clipNum}`);
+            if (nextButton) {
+                if (isComplete) {
+                    nextButton.disabled = false;
+                    nextButton.classList.remove('btn-disabled');
+                    nextButton.classList.add('btn');
+                    nextButton.innerHTML = clipNum === 4 ? 'ถัดไป: สรุปคะแนน →' : `ถัดไป: คลิปที่ ${clipNum + 1} →`;
+                } else {
+                    nextButton.disabled = true;
+                    nextButton.classList.add('btn-disabled');
+                    nextButton.classList.remove('btn');
+                    nextButton.innerHTML = `❌ ประเมินไม่ครบ (${completedCount}/${totalCriteria})`;
+                }
+            }
+            
+            // แสดงข้อความแจ้งเตือน
+            const warningDiv = document.querySelector(`#warning-${clipNum}`);
+            if (warningDiv) {
+                if (isComplete) {
+                    warningDiv.style.display = 'none';
+                } else {
+                    warningDiv.style.display = 'block';
+                    warningDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            ⚠️ <strong>กรุณาประเมินให้ครบทุกข้อ:</strong> ยังขาด ${totalCriteria - completedCount} ข้อ
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Start evaluation
+        function startEvaluation() {
+            try {
+                if (!currentJudge) {
+                    // ถ้าไม่มี currentJudge แสดงว่าไม่มี token หรือ token ไม่ถูกต้อง
+                    document.getElementById('noTokenMessage').classList.remove('hidden');
+                    document.getElementById('welcomeActions').classList.add('hidden');
+                    return;
+                }
+                
+                if (systemSettings.status === 'closed') {
+                    goToPage('closed');
+                    return;
+                }
+                
+                console.log('🚀 Starting evaluation for:', currentJudge.name);
+                goToPage('clip-1');
+                
+            } catch (error) {
+                console.error('Error starting evaluation:', error);
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        // Next clip - ตรวจสอบว่าประเมินครบหรือยัง
+        function nextClip(currentClip) {
+            const clipScores = scores[currentClip];
+            const completedCount = Object.keys(clipScores).length;
+            const totalCriteria = criteria.length; // 10 ข้อ
+            
+            if (completedCount < totalCriteria) {
+                alert(`❌ กรุณาประเมินให้ครบทุกข้อก่อน\nประเมินแล้ว: ${completedCount}/${totalCriteria} ข้อ\nยังขาด: ${totalCriteria - completedCount} ข้อ`);
+                return;
+            }
+            
+            const nextClipNum = currentClip + 1;
+            if (nextClipNum <= 4) {
+                goToPage(`clip-${nextClipNum}`);
+            } else {
+                goToPage('summary');
+            }
+        }
+
+        // ตรวจสอบว่าสามารถไปหน้าสรุปได้หรือไม่
+        function goToSummary() {
+            // ตรวจสอบคลิปที่ 4 ว่าประเมินครบหรือยัง
+            const clipScores = scores[4];
+            const completedCount = Object.keys(clipScores).length;
+            const totalCriteria = criteria.length;
+            
+            if (completedCount < totalCriteria) {
+                alert(`❌ กรุณาประเมินคลิปที่ 4 ให้ครบทุกข้อก่อน\nประเมินแล้ว: ${completedCount}/${totalCriteria} ข้อ`);
+                return;
+            }
+            
+            goToPage('summary');
+        }
+
+        // Generate summary
+        function generateSummary() {
+            const container = document.getElementById('summaryContent');
+            let html = '';
+            
+            for (let clipNum = 1; clipNum <= 4; clipNum++) {
+                const clipScores = scores[clipNum];
+                const total = Object.values(clipScores).reduce((sum, score) => sum + score, 0);
+                const completedCriteria = Object.keys(clipScores).length;
+                
+                html += `
+                    <div class="summary-card">
+                        <div class="clip-summary">
+                            <h3>📱 คลิปที่ ${clipNum}</h3>
+                            <div>
+                                <strong>คะแนนรวม:</strong> ${total}/50 
+                                <span style="color: #666;">(${completedCriteria}/10 ข้อ)</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            ${criteria.map((criterion, index) => `
+                                <div style="background: ${clipScores[index] ? '#e8f5e8' : '#fff3cd'}; 
+                                           padding: 5px 10px; border-radius: 5px; font-size: 14px;">
+                                    ${index + 1}: ${clipScores[index] || '-'}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Submit all scores - ตรวจสอบก่อนส่ง
+        async function submitAllScores() {
+            if (!currentJudge || !supabase) {
+                alert('เกิดข้อผิดพลาดในระบบ');
+                return;
+            }
+            
+            if (systemSettings.status === 'closed') {
+                alert('ระบบปิดรับลงคะแนนแล้ว');
+                return;
+            }
+            
+            // ตรวจสอบว่าทุกคลิปประเมินครบหรือยัง
+            let incompleteClips = [];
+            for (let clipNum = 1; clipNum <= 4; clipNum++) {
+                const completedCount = Object.keys(scores[clipNum]).length;
+                if (completedCount < criteria.length) {
+                    incompleteClips.push(`คลิปที่ ${clipNum} (${completedCount}/${criteria.length})`);
+                }
+            }
+            
+            if (incompleteClips.length > 0) {
+                alert(`❌ ยังประเมินไม่ครบในคลิป:\n${incompleteClips.join('\n')}\n\nกรุณากลับไปประเมินให้ครบทุกข้อ`);
+                return;
+            }
+            
+            if (!confirm('ยืนยันการส่งคะแนน?\nหลังจากส่งแล้วจะไม่สามารถแก้ไขได้')) {
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const scoresData = [];
+                
+                for (let clipNum = 1; clipNum <= 4; clipNum++) {
+                    const clipScores = scores[clipNum];
+                    const total = Object.values(clipScores).reduce((sum, score) => sum + score, 0);
+                    
+                    scoresData.push({
+                        judge_id: currentJudge.id,
+                        clip_id: clipNum,
+                        q1: clipScores[0] || null,
+                        q2: clipScores[1] || null,
+                        q3: clipScores[2] || null,
+                        q4: clipScores[3] || null,
+                        q5: clipScores[4] || null,
+                        q6: clipScores[5] || null,
+                        q7: clipScores[6] || null,
+                        q8: clipScores[7] || null,
+                        q9: clipScores[8] || null,
+                        q10: clipScores[9] || null,
+                        total_score: total
+                    });
+                }
+                
+                const { error: scoresError } = await supabase
+                    .from('scores')
+                    .insert(scoresData);
+                    
+                if (scoresError) throw scoresError;
+                
+                const { error: judgeError } = await supabase
+                    .from('judges')
+                    .update({ used: true })
+                    .eq('id', currentJudge.id);
+                    
+                if (judgeError) throw judgeError;
+                
+                goToPage('thanks');
+                
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Admin Functions
+        async function loadAdminStats() {
+            if (!supabase) return;
+            
+            try {
+                const [judgesResult, scoresResult] = await Promise.all([
+                    supabase.from('judges').select('*'),
+                    supabase.from('scores').select('*')
+                ]);
+                
+                const judges = judgesResult.data || [];
+                const scores = scoresResult.data || [];
+                
+                document.getElementById('totalJudges').textContent = judges.length;
+                document.getElementById('completedJudges').textContent = judges.filter(j => j.used).length;
+                
+                // คำนวณคะแนนเฉลี่ยของแต่ละคลิป
+                const clipAverages = {};
+                for (let clipNum = 1; clipNum <= 4; clipNum++) {
+                    const clipScores = scores.filter(s => s.clip_id === clipNum);
+                    if (clipScores.length > 0) {
+                        const totalScore = clipScores.reduce((sum, s) => sum + (s.total_score || 0), 0);
+                        clipAverages[clipNum] = (totalScore / clipScores.length).toFixed(2);
+                    } else {
+                        clipAverages[clipNum] = 0;
+                    }
+                }
+                
+                // หาคลิปที่ได้คะแนนเฉลี่ยสูงสุด (รางวัลที่ 1)
+                const maxAverage = Math.max(...Object.values(clipAverages).map(avg => parseFloat(avg)));
+                document.getElementById('averageWinner').textContent = maxAverage.toFixed(2);
+                
+                // Load system status
+                const { data: settings } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'system_status')
+                    .single();
+                    
+                if (settings) {
+                    document.getElementById('systemStatus').value = settings.value;
+                    systemSettings.status = settings.value;
+                }
+                
+            } catch (error) {
+                console.error('Error loading admin stats:', error);
+            }
+        }
+
+        // Update system status
+        async function updateSystemStatus() {
+            const status = document.getElementById('systemStatus').value;
+            
+            try {
+                // ใช้ upsert แทน insert เพื่อป้องกัน duplicate key
+                const { error } = await supabase
+                    .from('settings')
+                    .upsert({ 
+                        key: 'system_status', 
+                        value: status, 
+                        updated_at: new Date().toISOString() 
+                    }, {
+                        onConflict: 'key'
+                    });
+                    
+                if (error) throw error;
+                
+                systemSettings.status = status;
+                alert(`อัปเดตสถานะระบบเป็น "${status === 'open' ? 'เปิดรับลงคะแนน' : 'ปิดรับลงคะแนน'}" แล้ว`);
+                
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        async function createAllJudges() {
+            if (!confirm('สร้างกรรมการ 10 คน อัตโนมัติ?')) return;
+            
+            showLoading(true);
+            
+            try {
+                const judgesData = [];
+                for (let i = 1; i <= 10; i++) {
+                    const token = 'judge' + Date.now() + Math.random().toString(36).substr(2, 8);
+                    judgesData.push({
+                        name: `กรรมการ ${String.fromCharCode(64 + i)}`,
+                        access_token: token
+                    });
+                }
+
+                const { error } = await supabase
+                    .from('judges')
+                    .insert(judgesData);
+
+                if (error) throw error;
+
+                alert('สร้างกรรมการ 10 คนเรียบร้อยแล้ว!');
+                loadAdminStats();
+
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function showJudgeLinks() {
+            showLoading(true);
+            
+            try {
+                const { data: judges, error } = await supabase
+                    .from('judges')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+                
+                if (error) {
+                    console.error('Database error:', error);
+                    alert('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message);
+                    showLoading(false);
+                    return;
+                }
+                
+                if (!judges || judges.length === 0) {
+                    alert('ยังไม่มีกรรมการ กรุณาสร้างกรรมการก่อน');
+                    showLoading(false);
+                    return;
+                }
+                
+                const baseUrl = window.location.origin + window.location.pathname;
+                let html = `<h4>ลิงก์กรรมการทั้งหมด (${judges.length} คน)</h4>`;
+                
+                judges.forEach((judge, index) => {
+                    const judgeUrl = `${baseUrl}?token=${judge.access_token}`;
+                    const status = judge.used ? '✅ ประเมินแล้ว' : '⏳ รอประเมิน';
+                    
+                    html += `
+                        <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid ${judge.used ? '#28a745' : '#ffc107'};">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                                <div style="margin-bottom: 10px;">
+                                    <strong>${judge.name}</strong><br>
+                                    <small style="color: #666;">${status}</small>
+                                </div>
+                                <div>
+                                    <button class="btn" onclick="copyToClipboard('${judgeUrl}')" style="margin: 2px;">📋 คัดลอก</button>
+                                    <button class="btn btn-secondary" onclick="window.open('${judgeUrl}', '_blank')" style="margin: 2px;">🔗 เปิด</button>
+                                    <button class="btn btn-danger" onclick="deleteJudge('${judge.id}', '${judge.name}')" style="margin: 2px;">🗑️ ลบ</button>
+                                </div>
+                            </div>
+                            <div style="font-size: 12px; color: #666; margin-top: 5px; word-break: break-all; background: #f8f9fa; padding: 5px; border-radius: 4px;">
+                                ${judgeUrl}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn btn-secondary" onclick="exportAllLinks()">📋 ส่งออกลิงก์ทั้งหมด</button>
+                        <button class="btn btn-danger" onclick="deleteAllJudges()">🗑️ ลบกรรมการทั้งหมด</button>
+                    </div>
+                `;
+                
+                document.getElementById('judgeLinksDisplay').innerHTML = html;
+                document.getElementById('judgeLinksDisplay').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Unexpected error:', error);
+                alert('เกิดข้อผิดพลาดที่ไม่คาดคิด: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function exportAllLinks() {
+            try {
+                const { data: judges } = await supabase.from('judges').select('*').order('created_at');
+                const baseUrl = window.location.origin + window.location.pathname;
+                
+                let text = '🎬 ลิงก์กรรมการประเมินคลิป TikTok\n\n';
+                judges.forEach((judge, index) => {
+                    const url = `${baseUrl}?token=${judge.access_token}`;
+                    const status = judge.used ? '(ประเมินแล้ว)' : '(รอประเมิน)';
+                    text += `${judge.name} ${status}\n${url}\n\n`;
+                });
+                
+                navigator.clipboard.writeText(text);
+                alert('คัดลอกลิงก์ทั้งหมดแล้ว!');
+                
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        // Delete single judge
+        async function deleteJudge(judgeId, judgeName) {
+            if (!confirm(`ต้องการลบ "${judgeName}" หรือไม่?`)) return;
+            
+            try {
+                // Delete scores first (foreign key constraint)
+                await supabase.from('scores').delete().eq('judge_id', judgeId);
+                
+                // Delete judge
+                const { error } = await supabase.from('judges').delete().eq('id', judgeId);
+                
+                if (error) throw error;
+                
+                alert('ลบกรรมการเรียบร้อยแล้ว');
+                loadAdminStats();
+                showJudgeLinks(); // Refresh the list
+                
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        // Delete all judges
+        async function deleteAllJudges() {
+            if (!confirm('⚠️ ต้องการลบกรรมการทั้งหมดหรือไม่?')) return;
+            if (!confirm('⚠️ ยืนยันอีกครั้ง: ข้อมูลทั้งหมดจะหายไป!')) return;
+            
+            showLoading(true);
+            
+            try {
+                // Delete all scores first
+                await supabase.from('scores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                
+                // Delete all judges
+                await supabase.from('judges').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                
+                alert('ลบกรรมการทั้งหมดเรียบร้อยแล้ว');
+                loadAdminStats();
+                document.getElementById('judgeLinksDisplay').classList.add('hidden');
+                
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function showResults() {
+            showLoading(true);
+            
+            try {
+                const { data: scores } = await supabase.from('scores').select('*');
+                const { data: judges } = await supabase.from('judges').select('*');
+                
+                // Calculate results by clip
+                const clipResults = {};
+                for (let clipNum = 1; clipNum <= 4; clipNum++) {
+                    const clipScores = scores.filter(s => s.clip_id === clipNum);
+                    const totalScore = clipScores.reduce((sum, s) => sum + (s.total_score || 0), 0);
+                    const avgScore = clipScores.length > 0 ? (totalScore / clipScores.length).toFixed(2) : 0;
+                    
+                    clipResults[clipNum] = {
+                        judges: clipScores.length,
+                        total: totalScore,
+                        average: parseFloat(avgScore)
+                    };
+                }
+                
+                // Sort clips by average score
+                const sortedClips = Object.entries(clipResults)
+                    .sort(([,a], [,b]) => b.average - a.average);
+                
+                let html = '<h4>🏆 ผลคะแนนเรียงตามอันดับ</h4>';
+                html += '<div style="background: white; padding: 20px; border-radius: 10px; margin: 10px 0;">';
+                
+                sortedClips.forEach(([clipNum, result], index) => {
+                    const rank = index + 1;
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+                    
+                    html += `
+                        <div style="padding: 15px; margin: 10px 0; border-radius: 8px; background: ${rank <= 3 ? '#f8f9fa' : '#fff'}; border-left: 4px solid ${rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : rank === 3 ? '#CD7F32' : '#ddd'};">
+                            <strong>${medal} คลิปที่ ${clipNum}</strong><br>
+                            คะแนนเฉลี่ย: <strong>${result.average}</strong> จาก ${result.judges} กรรมการ<br>
+                            คะแนนรวม: ${result.total}
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                
+                document.getElementById('resultsDisplay').innerHTML = html;
+                document.getElementById('resultsDisplay').classList.remove('hidden');
+                
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function exportResults() {
+            try {
+                const { data: scores } = await supabase.from('scores').select('*');
+                const { data: judges } = await supabase.from('judges').select('*');
+                
+                // Create detailed results
+                let text = '📊 ผลการประเมินคลิป TikTok\n';
+                text += `วันที่: ${new Date().toLocaleDateString('th-TH')}\n\n`;
+                
+                // Summary by clip
+                for (let clipNum = 1; clipNum <= 4; clipNum++) {
+                    const clipScores = scores.filter(s => s.clip_id === clipNum);
+                    const total = clipScores.reduce((sum, s) => sum + (s.total_score || 0), 0);
+                    const avg = clipScores.length > 0 ? (total / clipScores.length).toFixed(2) : 0;
+                    
+                    text += `คลิปที่ ${clipNum}: คะแนนเฉลี่ย ${avg} (${clipScores.length} กรรมการ)\n`;
+                }
+                
+                text += `\nสถิติ:\n`;
+                text += `- กรรมการทั้งหมด: ${judges.length} คน\n`;
+                text += `- ประเมินแล้ว: ${judges.filter(j => j.used).length} คน\n`;
+                text += `- คะแนนที่ได้รับ: ${scores.length} รายการ\n`;
+                
+                navigator.clipboard.writeText(text);
+                alert('คัดลอกผลคะแนนแล้ว!');
+                
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        // Utility functions
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('คัดลอกแล้ว!');
+            });
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('hidden', !show);
+        }
+
+        // Console helpers
+        console.log('🎬 ระบบประเมินคลิป TikTok');
+        console.log('🔧 Admin URL:', window.location.origin + window.location.pathname + '?admin=true');
+        console.log('📚 GitHub Deployment Guide:');
+        console.log('1. บันทึกไฟล์นี้เป็น index.html');
+        console.log('2. สร้าง Repository ใหม่บน GitHub');
+        console.log('3. อัพโหลดไฟล์ index.html');
+        console.log('4. ไป Settings → Pages → เลือก main branch');
+        console.log('5. ใช้งานได้ที่ https://yourusername.github.io/repository-name');
+    </script>
+</body>
+</html>
